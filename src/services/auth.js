@@ -1,26 +1,67 @@
 import jwt from 'jsonwebtoken'
 import { getAuthUser } from '../database/auth.js'
 
-const authUsers = [
-    { username: 'pk', password: 'kissa'},
-    { username: 'ja', password: 'sala'}
-]
+const ACCESS_TOKEN_EXPIRES = '1h'
+const REFRESH_TOKEN_EXPIRES = '7d'
 
-export function doLogin(username, password) {
-    const user = getAuthUser(username)
+const generateAccessToken = (username) => {
+    return jwt.sign(
+        { sub: username },
+          process.env.JWT_ACCESS_SECRET, {
+            expiresIn: ACCESS_TOKEN_EXPIRES
+        })
+}
 
-    if (user && user.password === password) {
-        const token = jwt.sign(
-            { username: username }, 'my_secret_key',
-            { expiresIn: '1h' })
+const generateRefreshToken = (username) => {
+    return jwt.sign(
+        { sub: username },
+          process.env.JWT_REFRESH_SECRET, {
+            expiresIn: REFRESH_TOKEN_EXPIRES
+        })
+}
 
-        return ({
-            "user": username,
-            "access_token": token,
+export async function  doLogin(username, password) {
+    const user = await getAuthUser(username)
+    
+    if(!user && user.password !== password) {
+        return null
+    }
+    
+    const accessToken = generateAccessToken(username)
+    const refreshToken = generateRefreshToken(username)
+
+    return ({
+        "user": username,
+        "access_token": accessToken,
+        "refresh_token": refreshToken,
+        "token_type": "Bearer",
+        "expires_in": 3600
+    })
+}
+
+export const refreshAccessToken = async (refreshToken) => {
+    try {
+        const payload = jwt.verify(
+            refreshToken,
+            process.env.JWT_REFRESH_SECRET
+        )
+        
+        if(payload.type !== 'refresh') {
+            return null
+        }
+
+        const user = await getAuthUser(payload.sub)
+        if(!user) {
+            return null
+        }
+
+        const accessToken = generateAccessToken(payload.sub)
+        return {
+            "access_token": accessToken,
             "token_type": "Bearer",
             "expires_in": 3600
-        })
-    } else {
+        }
+    } catch (err) {
         return null
     }
 }

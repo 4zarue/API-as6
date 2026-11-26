@@ -26,3 +26,14 @@ Content-Type: application/json
 {
     "state": "done"
 }
+
+### GET todos as CSV
+GET http://localhost:3000/todos?state=done
+Accept: text/csv
+
+### GET todos as JSON
+GET http://localhost:3000/todos
+Accept: application/json
+
+### Delete a todo
+DELETE http://localhost:3000/todos/7684f106-1866-403c-b105-9dd26c20cc65

@@ -2,9 +2,13 @@ import { describe, test, beforeEach, afterEach } from "node:test"
 import assert from "node:assert/strict"
 import request from "supertest"
 import app from "../src/app.js"
-import { resetTodos } from '../src/services/todos.js'
 
-beforeEach(() => resetTodos())
+beforeEach(() => {
+    // Setup code before each test, if needed
+})
+afterEach(() => {
+    // Cleanup code after each test, if needed
+})
 
 describe('GET /users', () => {
     test('reponds with 200 and JSON', async () => {
@@ -38,6 +42,15 @@ describe('GET /users/:id', () => {
             .expect(404)
     })
 })
+
+    // the most common status codes
+    // 200 OK: The request was successful, and the server returned the requested data.
+    // 201 Created: The request was successful, and a new resource was created as a result.
+    // 400 Bad Request: The server could not understand the request due to invalid syntax.
+    // 401 Unauthorized: The client must authenticate itself to get the requested response.
+    // 403 Forbidden: The client does not have access rights to the content.
+    // 404 Not Found: The server can not find the requested resource.
+    // 500 Internal Server Error: The server has encountered a situation it doesn't know how to handle.
 
 describe('Todos API', () => {
     test('GET /todos returns todos and supports state filtering', async () => {
@@ -88,5 +101,41 @@ describe('Authentication API', () => {
         await request(app).post('/auth').send({ username: 'pk' }).expect(400)
         await request(app).post('/auth')
             .send({ username: 'pk', password: 'wrong' }).expect(401)
+    })
+})
+
+describe('Todo content negotiation and DELETE', () => {
+    test('GET /todos returns CSV when Accept is text/csv', async () => {
+        const res = await request(app)
+            .get('/todos?state=todo')
+            .set('Accept', 'text/csv')
+            .expect(200)
+            .expect('Content-Type', /text\/csv/)
+        assert.match(res.text, /^id,title,description,state,createdAt,updatedAt/)
+        assert.match(res.text, /Find some literature on express/)
+    })
+
+    test('GET /todos returns JSON when Accept is application/json', async () => {
+        const res = await request(app)
+            .get('/todos')
+            .set('Accept', 'application/json')
+            .expect(200)
+            .expect('Content-Type', /application\/json/)
+        assert.ok(Array.isArray(res.body))
+    })
+
+    test('GET /todos returns 406 for an unsupported Accept type', async () => {
+        await request(app)
+            .get('/todos')
+            .set('Accept', 'application/xml')
+            .expect(406)
+    })
+
+    test('DELETE /todos/:id deletes an existing todo and returns 404 when missing', async () => {
+        const todos = await request(app).get('/todos').expect(200)
+        const id = todos.body[0].id
+        await request(app).delete(`/todos/${id}`).expect(204)
+        await request(app).get(`/todos/${id}`).expect(404)
+        await request(app).delete('/todos/missing').expect(404)
     })
 })

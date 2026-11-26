@@ -72,3 +72,28 @@ describe('Todo service', () => {
         assert.equal(updateTodo('missing', { title: 'Updated' }), null)
     })
 })
+
+describe('Todo CSV and delete helpers', () => {
+    beforeEach(() => resetTodos())
+
+    test('converts todo items to CSV and escapes quotes', () => {
+        const todo = createTodo({ title: 'Say "hello"', description: 'A, B', state: 'done' })
+        const csv = toCsv([todo])
+        assert.match(csv, /^id,title,description,state,createdAt,updatedAt/)
+        assert.match(csv, /"Say ""hello"""/)
+        assert.match(csv, /"A, B"/)
+    })
+
+    test('rejects unsupported states on create and update', () => {
+        assert.equal(createTodo({ title: 'Bad state', state: 'waiting' }), null)
+        const todo = getTodos()[0]
+        assert.equal(updateTodo(todo.id, { state: 'waiting' }), null)
+    })
+
+    test('deletes an existing todo and returns false for a missing ID', () => {
+        const todo = getTodos()[0]
+        assert.equal(deleteTodo(todo.id), true)
+        assert.equal(getTodoById(todo.id), undefined)
+        assert.equal(deleteTodo('missing'), false)
+    })
+})

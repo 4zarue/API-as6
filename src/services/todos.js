@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
+const VALID_STATES = ['todo', 'doing', 'done']
+
 const initialTodos = () => {
     const now = new Date()
     return [
@@ -44,7 +46,7 @@ export function createTodo(input = {}) {
     if (typeof title !== 'string' || !title.trim()) {
         return null
     }
-    if (typeof description !== 'string' || typeof state !== 'string' || !state.trim()) {
+    if (typeof description !== 'string' || typeof state !== 'string' || !VALID_STATES.includes(state)) {
         return null
     }
 
@@ -72,7 +74,7 @@ export function updateTodo(id, updates) {
     }
     if ('title' in updates && (typeof updates.title !== 'string' || !updates.title.trim())) return null
     if ('description' in updates && typeof updates.description !== 'string') return null
-    if ('state' in updates && (typeof updates.state !== 'string' || !updates.state.trim())) return null
+    if ('state' in updates && !VALID_STATES.includes(updates.state)) return null
 
     Object.assign(todo, updates)
     if (typeof todo.title === 'string') todo.title = todo.title.trim()
@@ -83,4 +85,20 @@ export function updateTodo(id, updates) {
 // Used to keep tests independent from each other.
 export function resetTodos() {
     todos = initialTodos()
+}
+
+export function deleteTodo(id) {
+    const index = todos.findIndex(todo => todo.id === id)
+    if (index === -1) return false
+    todos.splice(index, 1)
+    return true
+}
+
+export function toCsv(items) {
+    const headers = ['id', 'title', 'description', 'state', 'createdAt', 'updatedAt']
+    const rows = items.map(todo => headers.map(key => {
+        const value = todo[key] ?? ''
+        return `"${String(value).replaceAll('"', '""')}"`
+    }).join(','))
+    return [headers.join(','), ...rows].join('\n')
 }
