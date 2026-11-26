@@ -14,3 +14,5 @@ Testing:
 npm test 
 npm run test:api 
 npm run test:unit
+
+There's some issue that I could not figure out, it probably has something to do with the MariaDB..
